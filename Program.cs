@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.IO;
 using Newtonsoft.Json;
@@ -46,12 +46,13 @@ namespace VSCodeRecoveryTool
         {
           try
           {
+            Int32 restoredFileCount = 0;
             if (Directory.Exists(VSCodeRecoveryDirectory)) 
             {
               // Uncomment the Directory.Delete and the Directory.CreateDirectory lines to allow recovery directory to be fully refreshed - make sure to configure appsettings.json correctly first
-              // Directory.Delete(VSCodeRecoveryDirectory, true); 
+              Directory.Delete(VSCodeRecoveryDirectory, true); 
             }
-            // Directory.CreateDirectory(VSCodeRecoveryDirectory);
+            Directory.CreateDirectory(VSCodeRecoveryDirectory);
     
             if (VSCodeHistoryDirectory != null)
             {
@@ -63,7 +64,6 @@ namespace VSCodeRecoveryTool
 
               foreach (var snapshotDirectory in vsCodeHistoryDirectories)
               {
-                cw(snapshotDirectory);
                 String snapshotDirectoryFullPath = VSCodeHistoryDirectory + "/" + snapshotDirectory;
                 var snapshotDirectoryInfo = new DirectoryInfo(snapshotDirectoryFullPath);
 
@@ -73,6 +73,7 @@ namespace VSCodeRecoveryTool
                                   .ToList();
 
                 Int32 fileCount = 0;
+                
                 JSONFileRoot? entriesJSONFile;
 
                 foreach (var snapshotFile in snapshotFiles)
@@ -86,92 +87,96 @@ namespace VSCodeRecoveryTool
                     var jsonFile = snapshotDirectoryFullPath + "/entries.json";
                     String? originalFilePath = "";
                     
-                    using (StreamReader reader = new StreamReader(jsonFile))
-                    {
-                        String jsonFileString = reader.ReadToEnd();
-                        if (jsonFileString != null)
-                        {
-                          entriesJSONFile = JsonConvert.DeserializeObject<JSONFileRoot>(jsonFileString);
-                          if (entriesJSONFile != null && entriesJSONFile.entries != null)
+                    if (File.Exists(jsonFile)) 
+                    { 
+                      using (StreamReader reader = new StreamReader(jsonFile))
+                      {
+                          String jsonFileString = reader.ReadToEnd();
+                          if (jsonFileString != null)
                           {
-                            List<Entry>? entries = entriesJSONFile.entries;  
-                            String? resource = entriesJSONFile.resource;
-                            if (resource != null) { originalFilePath = resource.Replace("file://",""); }
-                            String? fileId = "";
-                            String? fileTimestamp = "";
-                            String? snapshotFileFullPath = "";
-                            String? restoreToFilePath = "";
-                            String? dirCheckString = "";
-                            String? originalFileName = "";
-                            String? restoreToFullPath = "";
-
-                            if (entries != null)
+                            entriesJSONFile = JsonConvert.DeserializeObject<JSONFileRoot>(jsonFileString);
+                            if (entriesJSONFile != null && entriesJSONFile.entries != null)
                             {
-                              Int32 i = 0;
-                              List<Entry>? entriesOrderedByDateDescList = entries.OrderByDescending(x => x.timestamp).ToList();
-                              foreach (Entry? orderedEntry in entriesOrderedByDateDescList)
+                              List<Entry>? entries = entriesJSONFile.entries;  
+                              String? resource = entriesJSONFile.resource;
+                              if (resource != null) { originalFilePath = resource.Replace("file://",""); }
+                              String? fileId = "";
+                              String? fileTimestamp = "";
+                              String? snapshotFileFullPath = "";
+                              String? restoreToFilePath = "";
+                              String? dirCheckString = "";
+                              String? originalFileName = "";
+                              String? restoreToFullPath = "";
+
+                              if (entries != null)
                               {
-                                restoreToFilePath = "";
-                                snapshotFileFullPath = "";
-                                if (orderedEntry != null && orderedEntry.timestamp != null)
+                                Int32 i = 0;
+                                List<Entry>? entriesOrderedByDateDescList = entries.OrderByDescending(x => x.timestamp).ToList();
+                                foreach (Entry? orderedEntry in entriesOrderedByDateDescList)
                                 {
-                                  if (i == 0) //get first in descending by date list to restore latest file
+                                  restoreToFilePath = "";
+                                  snapshotFileFullPath = "";
+                                  if (orderedEntry != null && orderedEntry.timestamp != null)
                                   {
-                                    restoreToFilePath = VSCodeRecoveryDirectory + originalFilePath;
-                                    fileId = orderedEntry.id;
-                                    fileTimestamp = orderedEntry.timestamp.ToString();
-                                    originalFileName = "";
-                                    restoreToFullPath = "";
-
-                                    //restore original file to full path
-                                    snapshotFileFullPath = snapshotDirectoryFullPath + "/" + fileId;
-
-                                    String[] restorePathArray = restoreToFilePath.Split('/');
-                                    originalFileName = restorePathArray[restorePathArray.Length - 1];
-            
-                                    Int32 j = 0;
-                                    foreach (var dir in restorePathArray)
+                                    if (i == 0) //get first in descending by date list to restore latest file
                                     {
-                                      if (dir != "")
+                                      restoreToFilePath = VSCodeRecoveryDirectory + originalFilePath;
+                                      fileId = orderedEntry.id;
+                                      fileTimestamp = orderedEntry.timestamp.ToString();
+                                      originalFileName = "";
+                                      restoreToFullPath = "";
+
+                                      //restore original file to full path
+                                      snapshotFileFullPath = snapshotDirectoryFullPath + "/" + fileId;
+
+                                      String[] restorePathArray = restoreToFilePath.Split('/');
+                                      originalFileName = restorePathArray[restorePathArray.Length - 1];
+              
+                                      Int32 j = 0;
+                                      foreach (var dir in restorePathArray)
                                       {
-                                        if (j == restorePathArray.Length - 1) //end of path array or filename
+                                        if (dir != "")
                                         {
-                                          restoreToFullPath = dirCheckString + "/" + dir;
-                                          if (File.Exists(restoreToFullPath)) 
-                                          { 
-                                            // Uncomment the File.Delete and the File.Copy lines to allow recovery directory to be fully refreshed - make sure to configure appsettings.json correctly first
-                                            // File.Delete(restoreToFullPath); 
-                                          }
-                                          // File.Copy(snapshotFileFullPath, restoreToFullPath);
-                                        }
-                                        else
-                                        {
-                                          dirCheckString += "/" + dir;
-                                          if (!Directory.Exists(dirCheckString))
+                                          if (j == restorePathArray.Length - 1) //end of path array or filename
                                           {
-                                            Directory.CreateDirectory(dirCheckString);
+                                            restoreToFullPath = dirCheckString + "/" + dir;
+                                            if (File.Exists(restoreToFullPath)) 
+                                            { 
+                                              // Uncomment the File.Delete and the File.Copy lines to allow recovery directory to be fully refreshed - make sure to configure appsettings.json correctly first
+                                              File.Delete(restoreToFullPath); 
+                                            }
+                                            File.Copy(snapshotFileFullPath, restoreToFullPath);
+                                            restoredFileCount += 1;
+                                          }
+                                          else
+                                          {
+                                            dirCheckString += "/" + dir;
+                                            if (!Directory.Exists(dirCheckString))
+                                            {
+                                              Directory.CreateDirectory(dirCheckString);
+                                            }
                                           }
                                         }
+                                        j+=1;
                                       }
-                                      j+=1;
                                     }
                                   }
+                                  i+=1;
                                 }
-                                i+=1;
                               }
-                            }
-                          }     
-                        }
+                            }     
+                          }
+                      }
                     }
                   }
                 }
               }
             }
-        
+            cw(restoredFileCount.ToString() + " files restored to \n"+VSCodeRecoveryDirectory);
           }
           catch (IOException ioex) 
           {
-             cw("IO exception : " + ioex.Message + "\nMake sure appsettings.json is configured correctly."); 
+             cw("IO Exception : " + ioex.Message);
           }
           catch (Exception ex)
           {
@@ -181,6 +186,3 @@ namespace VSCodeRecoveryTool
       }
   }
 }
-
-
-
