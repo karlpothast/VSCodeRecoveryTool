@@ -50,9 +50,9 @@ namespace VSCodeRecoveryTool
             if (Directory.Exists(VSCodeRecoveryDirectory)) 
             {
               // Uncomment the Directory.Delete and the Directory.CreateDirectory lines to allow recovery directory to be fully refreshed - make sure to configure appsettings.json correctly first
-              Directory.Delete(VSCodeRecoveryDirectory, true); 
+              // Directory.Delete(VSCodeRecoveryDirectory, true); 
             }
-            Directory.CreateDirectory(VSCodeRecoveryDirectory);
+            // Directory.CreateDirectory(VSCodeRecoveryDirectory);
     
             if (VSCodeHistoryDirectory != null)
             {
@@ -143,10 +143,9 @@ namespace VSCodeRecoveryTool
                                             if (File.Exists(restoreToFullPath)) 
                                             { 
                                               // Uncomment the File.Delete and the File.Copy lines to allow recovery directory to be fully refreshed - make sure to configure appsettings.json correctly first
-                                              File.Delete(restoreToFullPath); 
+                                              // File.Delete(restoreToFullPath); 
                                             }
-                                            File.Copy(snapshotFileFullPath, restoreToFullPath);
-                                            restoredFileCount += 1;
+                                            // File.Copy(snapshotFileFullPath, restoreToFullPath); restoredFileCount += 1;                                           
                                           }
                                           else
                                           {
